@@ -3,14 +3,12 @@ import numpy as np
 from ex1_utils import gaussderiv, gausssmooth, show_flow, rotate_image
 
 def lucas_kanade(im1, im2, N):
-    # iim1 = gausssmooth(im1, 0.1)
-    # iim2 = gausssmooth(im2, 0.1)
-    Ix, Iy = gaussderiv(im1, 1)
-    # Ix, Iy = gaussderiv(gausssmooth(im1,1), 1)
-    It = im2 - im1
-    # Ix = gausssmooth(Ix, 0.1)
-    # Iy = gausssmooth(Iy, 0.1)
-    It = gausssmooth(It, 1)
+
+    Ix1, Iy1 = gaussderiv(im1, 1)
+    Ix2, Iy2 = gaussderiv(im2, 1)
+    Ix = (Ix1 + Ix2)/2
+    Iy = (Iy1 + Iy2)/2
+    It = gausssmooth(im2 - im1, 1)
     kernel = np.ones((N,N))
 
     Ixt = cv2.filter2D(cv2.multiply(Ix, It), -1, kernel, borderType=cv2.BORDER_REFLECT)
