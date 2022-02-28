@@ -1,0 +1,1 @@
+jupyter-nbconvert --to PDFviaHTML homework1.ipynb
