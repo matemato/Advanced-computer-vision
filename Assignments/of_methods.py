@@ -2,13 +2,18 @@ import cv2
 import numpy as np
 from ex1_utils import gaussderiv, gausssmooth, show_flow, rotate_image
 
-def lucas_kanade(im1, im2, N):
-
+def get_derivatives(im1,im2):
     Ix1, Iy1 = gaussderiv(im1, 1)
     Ix2, Iy2 = gaussderiv(im2, 1)
     Ix = (Ix1 + Ix2)/2
     Iy = (Iy1 + Iy2)/2
     It = gausssmooth(im2 - im1, 1)
+
+    return Ix, Iy, It
+
+def lucas_kanade(im1, im2, N):
+
+    Ix, Iy, It = get_derivatives(im1, im2)
     kernel = np.ones((N,N))
 
     Ixt = cv2.filter2D(cv2.multiply(Ix, It), -1, kernel, borderType=cv2.BORDER_REFLECT)
@@ -25,6 +30,22 @@ def lucas_kanade(im1, im2, N):
     return u,v
 
 def horn_schunck(im1 , im2 , n_iters , lmbd):
-    pass
+    n,m = im1.shape
+    u,v = np.zeros((n,m), np.float32), np.zeros((n,m), np.float32)
+    Ld = np.array([[0,   1/4,    0],
+                   [1/4, 0,      1/4],
+                   [0,   1/4,    0]])
+    Ix, Iy, It = get_derivatives(im1, im2)
+    # It = im2 - im1
+
+    for i in range(n_iters):
+        ua = cv2.filter2D(u, -1, Ld, borderType=cv2.BORDER_REFLECT)
+        va = cv2.filter2D(v, -1, Ld, borderType=cv2.BORDER_REFLECT)
+        P = cv2.multiply(Ix, ua) + cv2.multiply(Iy, va) + It
+        D = lmbd + cv2.multiply(Ix, Ix) + cv2.multiply(Iy,Iy)
+        u = ua - cv2.multiply(Ix, cv2.divide(P,D))
+        v = va - cv2.multiply(Iy, cv2.divide(P,D))
+                
+    return u,v
 
 
