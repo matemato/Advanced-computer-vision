@@ -9,29 +9,30 @@ def example():
     im1 = np.random.rand(200, 200).astype(np.float32)
     im2 = im1.copy()
     im2 = rotate_image(im2, -1)
-    print(type(im1))
     show_both(im1, im2)
 
 def test():
     # im1 = cv2.imread('collision/00000181.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
-    im1 = cv2.imread('disparity/office2_left.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
+    # im1 = cv2.imread('disparity/office2_left.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
     # im2 = cv2.imread('collision/00000182.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
-    im2 = cv2.imread('disparity/office2_right.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
+    # im2 = cv2.imread('disparity/office2_right.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
 
-    # im1 = cv2.imread('custom/ezgif-frame-075.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
-    # im2 = cv2.imread('custom/ezgif-frame-076.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
+    im1 = cv2.imread('other/1.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
+    im2 = cv2.imread('other/2.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
 
     show_both(im1, im2)
+    show_angle_magnitude(im1, im2)
 
 def time_test():
     # im1 = cv2.imread('collision/00000001.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
-    im1 = cv2.imread('disparity/office2_left.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
     # im2 = cv2.imread('collision/00000002.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
+    im1 = cv2.imread('disparity/office2_left.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
     im2 = cv2.imread('disparity/office2_right.png', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
     # im1 = cv2.imread('lab2/001.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
     # im2 = cv2.imread('lab2/002.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)/255
+
     start = time.time()
-    U_lk , V_lk = lucas_kanade(im1, im2, 3)
+    U_lk , V_lk = lucas_kanade(im1, im2, 3, True)
     end = time.time()
     print(end - start)
     U_hs , V_hs = horn_schunck(im1, im2, 1000, 0.5)
@@ -42,7 +43,7 @@ def time_test():
 
     start = time.time()
     # U_hs , V_hs = horn_schunck(im1, im2, 1000, 0.5)
-    U_hs2 , V_hs2 = horn_schunck(im1, im2, 500, 0.5, U_lk, V_lk)
+    U_hs2 , V_hs2 = horn_schunck(im1, im2, 500, 0.5, 1, U_lk, V_lk)
     end = time.time()
     print(end - start)
 
@@ -67,18 +68,32 @@ def show_both(im1, im2):
     ax1_12.imshow(im2)
     show_flow(U_lk ,V_lk, ax1_21, type='angle')
     show_flow(U_lk, V_lk, ax1_22, type='field', set_aspect=True)
-    fig1.suptitle ('Lucas−Kanade Optical Flow Optimized')
+    fig1.suptitle ('Lucas−Kanade Optical Flow')
     fig2, ((ax2_11, ax2_12), (ax2_21, ax2_22)) = plt.subplots(2, 2)
     ax2_11.imshow(im1)
     ax2_12.imshow(im2)
     show_flow(U_hs, V_hs, ax2_21, type='angle' )
     show_flow (U_hs, V_hs, ax2_22, type='field', set_aspect=True )
-    fig2.suptitle('Horn−Schunck Optical Flow ')
+    fig2.suptitle('Horn−Schunck Optical Flow')
     plt.show()
 
+def show_angle_magnitude(im1, im2):
+    U_hs , V_hs = horn_schunck(im1, im2, 1000, 0.5, 1)
+    fig1, (ax1, ax2, ax3) = plt.subplots(1, 3)
+    ax1.set_title("σ = 1")
+    ax2.set_title("σ = 3")
+    ax3.set_title("σ = 5")
+    show_flow(U_hs ,V_hs, ax1, type='angle_magnitude')
+    U_hs , V_hs = horn_schunck(im1, im2, 1000, 0.5, 3)
+    show_flow(U_hs, V_hs, ax2, type='angle_magnitude', set_aspect=True)
+    U_hs , V_hs = horn_schunck(im1, im2, 1000, 0.5, 5)
+    show_flow(U_hs, V_hs, ax3, type='angle_magnitude', set_aspect=True)
+    plt.show()
+
+
 if __name__ == "__main__":
-    # example()
-    # test()
+    example()
+    test()
     time_test()
 
 
