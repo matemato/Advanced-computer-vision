@@ -1,2 +1,4 @@
 *.pyc
-*.pyc
+*.label
+*.value
+/Assignments/2/Sequences/

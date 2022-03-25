@@ -76,7 +76,7 @@ def backproject_histogram(patch, histogram, nbins):
     # calculate bin index of a 3D histogram
     bin_idxs = (channel_bin_idxs[:, :, 0] * nbins**2  + channel_bin_idxs[:, :, 1] * nbins + channel_bin_idxs[:, :, 2]).astype(np.int32)
 
-    # use histogram us a lookup table for pixel backprojection
+    # use histogram as a lookup table for pixel backprojection
     backprojection = np.reshape(histogram[bin_idxs.flatten()], (patch.shape[0], patch.shape[1]))
     return backprojection
 
