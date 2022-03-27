@@ -1,8 +1,9 @@
 import math
+from re import X
 
 import numpy as np
 import cv2
-
+import random
 from ex1_utils import gausssmooth
 
 
@@ -11,6 +12,17 @@ def generate_responses_1():
     responses[70, 50] = 1
     responses[50, 70] = 0.5
     return gausssmooth(responses, 10)
+
+def custom_generate_responses_1(rand):
+    responses = np.zeros((100, 100), dtype=np.float32)
+    for i in range(1, rand.randint(3, 10)):
+        # print(i)
+        responses[rand.randint(20,80), rand.randint(20,80)] = rand.uniform(0.3, 0.5)
+
+    max = [rand.randint(20, 80), rand.randint(20,80)]
+    print(max)
+    responses[max[0], max[1]] = 1
+    return gausssmooth(responses, 10), max
 
 def get_patch(img, center, sz):
     # crop coordinates

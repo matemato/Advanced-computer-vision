@@ -25,7 +25,7 @@ class MSTracker(Tracker):
         self.q = extract_histogram(patch, self.parameters.bins, self.kernel)
 
         self.c = 1
-        # self.c = self.get_background_info(image)
+        self.c = self.get_background_info(image)
         
         self.q = self.c * self.q
         self.q = self.q/np.sum(self.q)
@@ -62,7 +62,6 @@ class MSTracker(Tracker):
         
         self.update_q(patch)
         
-
         return [self.position[0] - self.size[0]/2, self.position[1] - self.size[1]/2, self.size[0], self.size[1]]
 
     def get_background_info(self, image):
@@ -80,9 +79,9 @@ class MSTracker(Tracker):
 
 
 class MSParams():
-    def __init__(self, p):
+    def __init__(self):
         self.stop_dist = 1
         self.bins = 16
-        self.eps = 1e-5
+        self.eps = 1e-2
         self.sigma = 0.5
         self.alpha = 0.05
