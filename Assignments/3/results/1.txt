@@ -1,0 +1,5 @@
+self.enlarge = 1.2
+        self.sigma = 0.5
+        self.alpha = 0.01
+        self.lamb = 1e-3
+scale = [0.9, 1, 1.1]
