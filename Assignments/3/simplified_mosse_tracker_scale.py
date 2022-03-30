@@ -6,17 +6,21 @@ import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch#, Tracker
-from utils.tracker import Tracker
+from ex2_utils import get_patch, Tracker
+# from utils.tracker import Tracker
 
 class SimplifiedMOSSETracker(Tracker):
+    def __init__(self):
+        self.enlarge = 1
+        self.sigma = 0.5
+        self.alpha = 0.01
+        self.lamb = 1e-3
+        self.scales = [0.9, 1, 1.1]
+
     def name(self):
-        return 'Simplified_MOSSE_Tracker'
+        return 'Simplified_MOSSE_Tracker_SCALE'
 
     def initialize(self, image, region):
-
-        self.set_params()
-        
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         if len(region) == 8:
             x_ = np.array(region[::2])
@@ -53,24 +57,22 @@ class SimplifiedMOSSETracker(Tracker):
 
     def track(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        p,_ = get_patch(image, self.position, self.size)
+        # p,_ = get_patch(image, self.position, self.size)
 
-        
-
-        F_hat = fft2(self.win * p)
+        # F_hat = fft2(self.win * p)
 
         # plt.imshow(ifft2(F_hat).astype(float))
         # plt.show()
 
-        R = ifft2(self.H_hat * F_hat)
+        # R = ifft2(self.H_hat * F_hat)
 
         # plt.imshow(R.astype(float))
         # plt.show()
 
-        # self.position = np.array(np.unravel_index(R.argmax(), R.shape))
+        F_hat, R = self.get_best_size(image)
+
         y_shift, x_shift = np.array(np.unravel_index(R.argmax(), R.shape))
         
-
         if x_shift > self.size[0] / 2: x_shift -= self.size[0]
         if y_shift > self.size[1] / 2: y_shift -= self.size[1]
 
@@ -83,8 +85,26 @@ class SimplifiedMOSSETracker(Tracker):
 
         return [self.position[0] - self.patch_size[0]/2, self.position[1] - self.patch_size[1]/2, self.patch_size[0], self.patch_size[1]]
 
-    def set_params(self):
-        self.enlarge = 1.2
-        self.sigma = 2
-        self.alpha = 0.02
-        self.lamb = 1e-3
+    def get_best_size(self, image):
+        max_response = 0
+        for s in self.scales:
+            if self.patch_size[0]*s > self.size[0]*2: continue
+            p,_ = get_patch(image, self.position, self.patch_size*s)
+            p = cv2.resize(p, self.size)
+            F_hat = fft2(self.win * p)
+            R = ifft2(self.H_hat * F_hat)
+            response = np.max(R)
+
+            # plt.imshow(ifft2(F_hat).astype(float))
+            # plt.show()
+            # plt.imshow(R.astype(float))
+            # plt.show()
+
+            if response > max_response:
+                max_response = response
+                best_F_hat = F_hat
+                best_R = R
+                best_scale = s
+        self.patch_size = self.patch_size*best_scale
+        return best_F_hat, best_R
+
