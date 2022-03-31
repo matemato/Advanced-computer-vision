@@ -11,9 +11,9 @@ from ex2_utils import get_patch, Tracker
 
 class SimplifiedMOSSETracker(Tracker):
     def __init__(self):
-        self.enlarge = 1.2
-        self.sigma = 3
-        self.alpha = 0.6
+        self.enlarge = 1.5
+        self.sigma = 1
+        self.alpha = 0.125
         self.lamb = 1e-3
 
     def name(self):
