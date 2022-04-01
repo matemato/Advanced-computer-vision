@@ -1,31 +1,28 @@
-from pickletools import uint8
 import cv2
-import time
 import random
-import sys
 import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch, Tracker
-# from utils.tracker import Tracker
+from ex2_utils import get_patch#, Tracker
+from utils.tracker import Tracker
 
 class MOSSETracker(Tracker):
     def __init__(self):
         self.enlarge = 1
         self.sigma = 1
-        self.alpha = 0.125
+        self.alpha = 0.06
         # self.alpha = 0.6
         self.lamb = 1e-3
         # self.scales = [0.9, 1, 1.1]
         self.scales = [1]
-        self.training_images = 100
-        self.trans = 5
-        self.rotate = 15
+        self.training_images = 8
+        self.trans = 10
+        self.rotate = 5
         self.scale = 0.1
 
     def name(self):
-        return 'MOSSE_Tracker_SCALE'
+        return 'MOSSE_Tracker_fixed'
 
     def initialize(self, image, region):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -82,14 +79,12 @@ class MOSSETracker(Tracker):
 
         if(self.update(R)):
 
-            self.A_prev = self.alpha * fft2(self.G) * np.conj(F_hat) + (1-self.alpha) * self.A_prev
-            self.B_prev = self.alpha * F_hat * np.conj(F_hat) + (1-self.alpha) * self.B_prev
-            self.A += self.A_prev
-            self.B += self.B_prev
+            self.A = self.alpha * fft2(self.G) * np.conj(F_hat) + (1-self.alpha) * self.A
+            self.B = self.alpha * F_hat * np.conj(F_hat) + (1-self.alpha) * self.B
 
             self.H_hat = self.A / (self.B + self.lamb)
-            plt.imshow(ifft2(self.H_hat).real)
-            plt.show() 
+            # plt.imshow(ifft2(self.H_hat).real)
+            # plt.show() 
         # H_hat = (self.G_hat * np.conj(F_hat)) / (F_hat * np.conj(F_hat) + self.lamb)
 
         # self.H_hat = (1-self.alpha) * self.H_hat + self.alpha * H_hat
@@ -123,16 +118,14 @@ class MOSSETracker(Tracker):
         return best_F_hat, best_R
 
     def get_training_set(self, image):
-        self.A = 0
-        self.B = 0
         rand = random.Random(0)
         p,_ = get_patch(image, self.position, self.size)
         p = np.log(p/255+1)
         # p = ( p - np.mean(p) ) / np.std(p)
         p = ( p - np.mean(p) ) / np.linalg.norm(p)
         F_hat = fft2(self.win * p)
-        self.A_prev = fft2(self.G) * np.conj(F_hat) # add original image to dataset
-        self.B_prev = F_hat * np.conj(F_hat)
+        self.A = fft2(self.G) * np.conj(F_hat) # add original image to dataset
+        self.B = F_hat * np.conj(F_hat)
         if self.training_images > 0:
             for i in range(self.training_images):
                 tx = rand.randint(-self.trans,self.trans)
@@ -143,9 +136,9 @@ class MOSSETracker(Tracker):
                 translated_image = cv2.warpAffine(src=rotated_image, M=translation_matrix, dsize=self.size)
                 G = np.roll(self.G, (ty, tx), (0,1))
                 F_hat = fft2(self.win * translated_image)
-                self.A += fft2(G) * np.conj(F_hat)
-                self.B += F_hat * np.conj(F_hat)
-        self.H_hat = (self.A+self.A_prev) / (self.B + self.B_prev + self.lamb)
+                self.A = self.alpha * fft2(G) * np.conj(F_hat) + (1-self.alpha) * self.A
+                self.B = self.alpha * F_hat * np.conj(F_hat) + (1-self.alpha) * self.B
+        self.H_hat = self.A / (self.B + self.lamb)
         # plt.imshow(ifft2(self.H_hat).real)
         # plt.show()    
 
