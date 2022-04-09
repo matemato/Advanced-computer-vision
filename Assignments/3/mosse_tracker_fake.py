@@ -7,8 +7,8 @@ import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch, Tracker
-# from utils.tracker import Tracker
+from ex2_utils import get_patch#, Tracker
+from utils.tracker import Tracker
 
 class MOSSETracker(Tracker):
     def __init__(self):
@@ -17,12 +17,12 @@ class MOSSETracker(Tracker):
         self.alpha = 0.125
         # self.alpha = 0.6
         self.lamb = 1e-3
-        # self.scales = [0.9, 1, 1.1]
-        self.scales = [1]
-        self.training_images = 100
+        self.scales = [0.9, 1, 1.1]
+        # self.scales = [1]
+        self.training_images = 8
         self.trans = 5
-        self.rotate = 15
-        self.scale = 0.1
+        self.rotate = 5
+        self.scale = 0.2
 
     def name(self):
         return 'MOSSE_Tracker_SCALE'
@@ -36,13 +36,12 @@ class MOSSETracker(Tracker):
 
         self.position = [int(region[0] + region[2] / 2), int(region[1] + region[3] / 2)]
         self.patch_size = np.array([int(region[2]), int(region[3])])
-        region[2] = int(region[2]*self.enlarge)
-        region[3] = int(region[3]*self.enlarge)
-        if region[2]%2==0: region[2] -= 1
-        if region[3]%2==0: region[3] -= 1
-        self.size = np.array([int(region[2]), int(region[3])])
+        self.size = np.array([int(region[2]*self.enlarge), int(region[3]*self.enlarge)])
+        if self.patch_size[0]%2==0: self.patch_size [0] -= 1
+        if self.size[0]%2==0: self.size[0] -= 1
+        if self.patch_size[1]%2==0: self.patch_size [1] -= 1
+        if self.size[1]%2==0: self.size[1] -= 1
         
-
         self.win = create_cosine_window(self.size)
         self.G = create_gauss_peak(self.size, self.sigma)
  
@@ -81,6 +80,12 @@ class MOSSETracker(Tracker):
         self.position[1] += y_shift
 
         if(self.update(R)):
+            p,_ = get_patch(image, self.position, self.patch_size)
+            p = cv2.resize(p, self.size)
+            p = np.log(p/255+1)
+            p = ( p - np.mean(p) ) / np.linalg.norm(p)
+            
+            F_hat = fft2(self.win * p)
 
             self.A_prev = self.alpha * fft2(self.G) * np.conj(F_hat) + (1-self.alpha) * self.A_prev
             self.B_prev = self.alpha * F_hat * np.conj(F_hat) + (1-self.alpha) * self.B_prev
@@ -88,8 +93,8 @@ class MOSSETracker(Tracker):
             self.B += self.B_prev
 
             self.H_hat = self.A / (self.B + self.lamb)
-            plt.imshow(ifft2(self.H_hat).real)
-            plt.show() 
+            # plt.imshow(ifft2(self.H_hat).real)
+            # plt.show() 
         # H_hat = (self.G_hat * np.conj(F_hat)) / (F_hat * np.conj(F_hat) + self.lamb)
 
         # self.H_hat = (1-self.alpha) * self.H_hat + self.alpha * H_hat
@@ -101,10 +106,11 @@ class MOSSETracker(Tracker):
         for s in self.scales:
             if self.patch_size[0]*s > self.size[0]*2: continue
             p,_ = get_patch(image, self.position, self.patch_size*s)
+            p = cv2.resize(p, self.size)
             p = np.log(p/255+1)
             # p = ( p - np.mean(p) ) / np.std(p)
             p = ( p - np.mean(p) ) / np.linalg.norm(p)
-            p = cv2.resize(p, self.size)
+            
             F_hat = fft2(self.win * p)
             R = ifft2(self.H_hat * F_hat)
             response = np.max(R)

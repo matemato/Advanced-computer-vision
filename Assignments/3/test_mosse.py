@@ -4,25 +4,27 @@ import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch#, Tracker
-from utils.tracker import Tracker
+from ex2_utils import get_patch, Tracker
+# from utils.tracker import Tracker
 
 class MOSSETracker(Tracker):
-    def __init__(self):
-        self.enlarge = 1
-        self.sigma = 1
-        self.alpha = 0.06
+    def __init__(self, e=1.2, s=1, a=0.15, PSR=5, t=100, n="0"):
+        self.enlarge = e
+        self.sigma = s
+        self.alpha = a
         # self.alpha = 0.6
         self.lamb = 1e-3
         # self.scales = [0.9, 1, 1.1]
         self.scales = [1]
-        self.training_images = 8
-        self.trans = 10
+        self.training_images = t
+        self.trans = 5
         self.rotate = 5
         self.scale = 0.1
+        self.PSR = PSR
+        self.n = n
 
     def name(self):
-        return 'MOSSE_Tracker_fixed'
+        return self.n
 
     def initialize(self, image, region):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -33,13 +35,12 @@ class MOSSETracker(Tracker):
 
         self.position = [int(region[0] + region[2] / 2), int(region[1] + region[3] / 2)]
         self.patch_size = np.array([int(region[2]), int(region[3])])
-        region[2] = int(region[2]*self.enlarge)
-        region[3] = int(region[3]*self.enlarge)
-        if region[2]%2==0: region[2] -= 1
-        if region[3]%2==0: region[3] -= 1
-        self.size = np.array([int(region[2]), int(region[3])])
+        self.size = np.array([int(region[2]*self.enlarge), int(region[3]*self.enlarge)])
+        if self.patch_size[0]%2==0: self.patch_size[0] += 1
+        if self.patch_size[1]%2==0: self.patch_size[1] += 1
+        if self.size[0]%2==0: self.size[0] += 1
+        if self.size[1]%2==0: self.size[1] += 1
         
-
         self.win = create_cosine_window(self.size)
         self.G = create_gauss_peak(self.size, self.sigma)
  
@@ -66,8 +67,10 @@ class MOSSETracker(Tracker):
 
         # plt.imshow(R.astype(float))
         # plt.show()
-
-        F_hat, R = self.get_best_size(image)
+        if len(self.scales) > 1: F_hat, R = self.get_best_size(image)
+        else: 
+            F_hat = self.get_F_hat(image, self.size)
+            R = ifft2(self.H_hat * F_hat)
 
         y_shift, x_shift = np.array(np.unravel_index(R.argmax(), R.shape))
         
@@ -76,6 +79,12 @@ class MOSSETracker(Tracker):
 
         self.position[0] += x_shift
         self.position[1] += y_shift
+
+        if len(self.scales) > 1: F_hat = self.get_F_hat(image, self.patch_size)
+        else: 
+            F_hat = self.get_F_hat(image, self.size)
+
+        R = ifft2(self.H_hat * F_hat)
 
         if(self.update(R)):
 
@@ -95,12 +104,7 @@ class MOSSETracker(Tracker):
         max_response = -np.inf
         for s in self.scales:
             if self.patch_size[0]*s > self.size[0]*2: continue
-            p,_ = get_patch(image, self.position, self.patch_size*s)
-            p = np.log(p/255+1)
-            # p = ( p - np.mean(p) ) / np.std(p)
-            p = ( p - np.mean(p) ) / np.linalg.norm(p)
-            p = cv2.resize(p, self.size)
-            F_hat = fft2(self.win * p)
+            F_hat = self.get_F_hat(image, self.patch_size*s)
             R = ifft2(self.H_hat * F_hat)
             response = np.max(R)
 
@@ -118,14 +122,16 @@ class MOSSETracker(Tracker):
         return best_F_hat, best_R
 
     def get_training_set(self, image):
-        rand = random.Random(0)
+        rand = random.Random(1)
         p,_ = get_patch(image, self.position, self.size)
         p = np.log(p/255+1)
-        # p = ( p - np.mean(p) ) / np.std(p)
         p = ( p - np.mean(p) ) / np.linalg.norm(p)
+        
+          
         F_hat = fft2(self.win * p)
         self.A = fft2(self.G) * np.conj(F_hat) # add original image to dataset
         self.B = F_hat * np.conj(F_hat)
+
         if self.training_images > 0:
             for i in range(self.training_images):
                 tx = rand.randint(-self.trans,self.trans)
@@ -135,17 +141,21 @@ class MOSSETracker(Tracker):
                 translation_matrix = np.array([[1, 0, tx], [0, 1, ty]], dtype=np.float32)
                 translated_image = cv2.warpAffine(src=rotated_image, M=translation_matrix, dsize=self.size)
                 G = np.roll(self.G, (ty, tx), (0,1))
+                # plt.imshow(G)
+                # plt.show()
                 F_hat = fft2(self.win * translated_image)
                 self.A = self.alpha * fft2(G) * np.conj(F_hat) + (1-self.alpha) * self.A
                 self.B = self.alpha * F_hat * np.conj(F_hat) + (1-self.alpha) * self.B
         self.H_hat = self.A / (self.B + self.lamb)
-        # plt.imshow(ifft2(self.H_hat).real)
-        # plt.show()    
+
+        # fig.savefig(fname, dpi)
+
+        plt.imshow(ifft2(self.H_hat).real)
+        plt.show()    
 
     def update(self, R):
         G = np.roll(R.real, (int(self.size[1]/2), int(self.size[0]/2)), (0, 1))
-        # plt.imshow(G)
-        # plt.show()
+
         y, x = np.array(np.unravel_index(G.argmax(), G.shape))
         mask = np.ones([self.size[1], self.size[0]]).astype('uint8')
         left = max(0, x-11)
@@ -154,9 +164,18 @@ class MOSSETracker(Tracker):
         bottom = min(y+12, self.size[1])
         mask[top:bottom, left:right] = 0
         mask = np.ma.make_mask(mask)
-        # plt.imshow(mask)
-        # plt.show()
-
+        
+        
         PSR = ( np.max(G) - np.mean(G[mask]) ) / np.std(G[mask])
         # print(PSR)
-        return PSR > 10
+        return PSR > self.PSR 
+
+    def get_F_hat(self, image, bb):
+        p,_ = get_patch(image, self.position, bb)
+        # plt.imshow(p)
+        # plt.show() 
+        p = cv2.resize(p, self.size)
+        p = np.log(p/255+1)
+        p = ( p - np.mean(p) ) / np.linalg.norm(p)
+        
+        return fft2(self.win * p)

@@ -6,18 +6,19 @@ import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch, Tracker
-# from utils.tracker import Tracker
+from ex2_utils import get_patch#, Tracker
+from utils.tracker import Tracker
 
 class SimplifiedMOSSETracker(Tracker):
-    def __init__(self):
-        self.enlarge = 1.5
-        self.sigma = 1
-        self.alpha = 0.125
+    def __init__(self, e=1.2, s=2, a=0.15, PSR=0, t=0, n="0"):
+        self.enlarge = e
+        self.sigma = s
+        self.alpha = a
         self.lamb = 1e-3
+        self.n = n
 
     def name(self):
-        return 'Simplified_MOSSE_Tracker'
+        return self.n
 
     def initialize(self, image, region):        
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -79,6 +80,9 @@ class SimplifiedMOSSETracker(Tracker):
 
         self.position[0] += x_shift
         self.position[1] += y_shift
+
+        p,_ = get_patch(image, self.position, self.size)
+        F_hat = fft2(self.win * p)
 
         H_hat = (self.G_hat * np.conj(F_hat)) / (F_hat * np.conj(F_hat) + self.lamb)
 

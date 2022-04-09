@@ -12,7 +12,7 @@ from test_mosse import MOSSETracker
 
 # set the path to directory where you have the sequences
 dataset_path = './Sequences' # set to the dataset path on your disk
-sequence = 'torus'  # choose the sequence you want to test
+sequence = 'ball'  # choose the sequence you want to test
 
 # visualization and setup parameters
 win_name = 'Tracking window'
@@ -32,7 +32,6 @@ n_failures = 0
 # tracker = MSTracker()
 
 # tracker = SimplifiedMOSSETracker()
-
 tracker = MOSSETracker()
 
 time_all = 0

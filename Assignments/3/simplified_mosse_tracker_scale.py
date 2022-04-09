@@ -6,19 +6,20 @@ import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch, Tracker
-# from utils.tracker import Tracker
+from ex2_utils import get_patch#, Tracker
+from utils.tracker import Tracker
 
 class SimplifiedMOSSETracker(Tracker):
-    def __init__(self):
+    def __init__(self, e=1.2, s=2, a=0.15, PSR=0, t=0, n="0"):
         self.enlarge = 1
         self.sigma = 3
-        self.alpha = 0.01
+        self.alpha = 0.15
         self.lamb = 1e-3
         self.scales = [0.9, 1, 1.1]
+        self.n = n
 
     def name(self):
-        return 'Simplified_MOSSE_Tracker_SCALE'
+        return self.n
 
     def initialize(self, image, region):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
