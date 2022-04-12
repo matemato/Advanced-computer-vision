@@ -5,14 +5,14 @@ import cv2
 from sequence_utils import VOTSequence
 # from ncc_tracker_example import NCCTracker, NCCParams
 # from ms_tracker import MSTracker
-# from simplified_mosse_tracker import SimplifiedMOSSETracker
+from simplified_mosse_tracker import SimplifiedMOSSETracker
 # from simplified_mosse_tracker_scale import SimplifiedMOSSETracker
 # from mosse_tracker import MOSSETracker
-from test_mosse import MOSSETracker
+from actual_mosse_tracker import MOSSETracker
 
 # set the path to directory where you have the sequences
 dataset_path = './Sequences' # set to the dataset path on your disk
-sequence = 'ball'  # choose the sequence you want to test
+sequence = 'basketball'  # choose the sequence you want to test
 
 # visualization and setup parameters
 win_name = 'Tracking window'

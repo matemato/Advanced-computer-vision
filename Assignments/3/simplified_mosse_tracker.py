@@ -6,8 +6,8 @@ import numpy as np
 from numpy.fft import fft2, ifft2
 import matplotlib.pyplot as plt
 from ex3_utils import create_cosine_window, create_gauss_peak
-from ex2_utils import get_patch#, Tracker
-from utils.tracker import Tracker
+from ex2_utils import get_patch, Tracker
+# from utils.tracker import Tracker
 
 class SimplifiedMOSSETracker(Tracker):
     def __init__(self, e=1.2, s=2, a=0.15, PSR=0, t=0, n="0"):
@@ -16,12 +16,17 @@ class SimplifiedMOSSETracker(Tracker):
         self.alpha = a
         self.lamb = 1e-3
         self.n = n
+        self.init = 0
+        self.h2 = 0
+        self.avg = 0
+        self.h = 0
 
     def name(self):
         return self.n
 
     def initialize(self, image, region):        
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        start = time.time()
         if len(region) == 8:
             x_ = np.array(region[::2])
             y_ = np.array(region[1::2])
@@ -53,10 +58,14 @@ class SimplifiedMOSSETracker(Tracker):
 
         # plt.imshow(ifft2(F_hat * self.H_hat).astype(float))
         # plt.show()
+        end = time.time()
+        self.h2 += 1
+        self.init += end - start
 
 
     def track(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        start = time.time()
         p,_ = get_patch(image, self.position, self.size)
 
         
@@ -87,5 +96,13 @@ class SimplifiedMOSSETracker(Tracker):
         H_hat = (self.G_hat * np.conj(F_hat)) / (F_hat * np.conj(F_hat) + self.lamb)
 
         self.H_hat = (1-self.alpha) * self.H_hat + self.alpha * H_hat
+
+        end = time.time()
+        # print("track:", end - start)
+        self.avg += end - start
+        self.h += 1
+
+        print(self.h / self.avg)
+        print("init:",self.h2 / self.init)
 
         return [self.position[0] - self.patch_size[0]/2, self.position[1] - self.patch_size[1]/2, self.patch_size[0], self.patch_size[1]]
