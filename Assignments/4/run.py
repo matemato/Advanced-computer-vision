@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from ex4_utils import kalman_step
 
-def random_walk(q, r, w=10, h=10):
+def random_walk(q, r=1, w=10, h=10):
     alpha = 0.1
     beta = 0.5
     T = sp.symbols('T')
@@ -18,7 +18,7 @@ def random_walk(q, r, w=10, h=10):
 
     return np.array(Fi).astype('float64'), H, np.array(Q).astype('float64'), R
 
-def NCV(q,r):
+def NCV(q=1,r=1):
     T = sp.symbols('T')
     F = sp.Matrix(np.vstack((np.array([[0,0,1,0],[0,0,0,1]]), np.zeros((2,4)))))
     L = sp.Matrix(np.vstack((np.zeros((2,2)), np.eye(2))))
@@ -28,7 +28,7 @@ def NCV(q,r):
     H = np.array([[1,0,0,0],[0,1,0,0]])
     return np.array(sp.exp(F)).astype('float64'), H, np.array(Q).astype('float64'), R
 
-def NCA(q,r):
+def NCA(q,r=1):
     T = sp.symbols('T')
     F = sp.Matrix(np.diag(np.ones(4), 2))
     L = sp.Matrix(np.vstack((np.zeros((4,2)), np.eye(2))))
