@@ -9,11 +9,11 @@ from sequence_utils import VOTSequence
 # from simplified_mosse_tracker_scale import SimplifiedMOSSETracker
 # from mosse_tracker import MOSSETracker
 # from actual_mosse_tracker import MOSSETracker
-from particle_tracker import ParticleTracker
+from particle_tracker_2 import ParticleTracker
 
 # set the path to directory where you have the sequences
 dataset_path = './Sequences' # set to the dataset path on your disk
-sequence = 'motocross'  # choose the sequence you want to test
+sequence = 'skating'  # choose the sequence you want to test
 
 # visualization and setup parameters
 win_name = 'Tracking window'
